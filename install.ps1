@@ -55,10 +55,39 @@ if ($DryRun) { Write-Host "[DryRun] 只演示，不写盘" -ForegroundColor Yell
 if ($DryRun) {
   Write-Host "[1/3] [DryRun] 将复制到 $target"
 } else {
-  if (Test-Path $target) { Remove-Item -Recurse -Force $target }
-  Copy-Item -Recurse -Force $here $target
+  $targetParent = Split-Path -Parent $target
+  if (-not (Test-Path -LiteralPath $targetParent)) {
+    New-Item -ItemType Directory -Path $targetParent -Force | Out-Null
+  }
+
+  # 关键：脚本所在目录可能「就是」目标目录。
+  # 若在 ~/.dsh/plugins/zfx-emperor 内直接运行 install.ps1，
+  # 原来的「先删后拷」会把脚本自身删掉，复制随即失败，
+  # 插件目录被清空 —— 宿主随后读不到 package.json 而报 ENOENT。
+  $samePath = $false
+  try {
+    $hereFull = (Resolve-Path -LiteralPath $here).Path
+    if (Test-Path -LiteralPath $target) {
+      $targetFull = (Resolve-Path -LiteralPath $target).Path
+      $samePath = ($hereFull -eq $targetFull)
+      if (-not $samePath) {
+        $hSep = $hereFull.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+        $tSep = $targetFull.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+        $samePath = $hSep.StartsWith($tSep, [StringComparison]::OrdinalIgnoreCase) -or
+                    $tSep.StartsWith($hSep, [StringComparison]::OrdinalIgnoreCase)
+      }
+    }
+  } catch { $samePath = $false }
+
+  if ($samePath) {
+    Write-Host "[1/3] 插件已在目标位置，跳过复制：$target" -ForegroundColor Yellow
+    Write-Host "      （脚本正是在该目录内运行，先删后拷会删掉脚本自身）" -ForegroundColor DarkGray
+  } else {
+    if (Test-Path -LiteralPath $target) { Remove-Item -Recurse -Force -LiteralPath $target }
+    Copy-Item -Recurse -Force $here $target
+    Write-Host "[1/3] 插件已复制到 $target"
+  }
   Remove-Item -Recurse -Force (Join-Path $target "node_modules") -ErrorAction SilentlyContinue
-  Write-Host "[1/3] 插件已复制到 $target"
 }
 
 # 2. 备份并改 profile package.json

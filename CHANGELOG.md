@@ -5,6 +5,33 @@
 
 ---
 
+## 0.2.0-mod.2
+
+### 修复
+
+- **`install.ps1`：脚本删掉自身导致插件目录被清空**（致命，「装不上」的第二个原因）
+
+  原逻辑是「先 `Remove-Item -Recurse -Force $target`，再 `Copy-Item -Recurse -Force $here $target`」。
+  当**脚本所在目录恰好就是目标目录**时（用户按 README 方式二把仓库放进
+  `~/.dsh/plugins/zfx-emperor`，再在该目录里执行 `install.ps1`），
+  第一步删除的就是脚本自己所在目录，第二步的复制源随即不存在 → 抛错退出。
+  结果是插件目录被清空、`package.json` 一并消失，宿主读取插件元信息时崩溃：
+
+  ```
+  包元信息错误：Plugin metadata for zfx-emperor: Error:
+  ...\.dsh\plugins\zfx-emperor\package.json:
+  ENOENT: no such file or directory
+  ```
+
+  现在脚本会先比对源目录与目标目录（含父子嵌套关系），一旦判定为同一位置就
+  **跳过复制**并给出提示，不再误删。正常「克隆在别处 → 运行脚本」的流程不受影响。
+
+- **`README.md`：安装说明补充位置警告**
+  明确建议把仓库克隆到任意普通目录再运行脚本，并说明该 ENOENT 报错的成因；
+  同时修正 `git clone` 地址为二改版仓库。
+
+---
+
 ## 0.2.0-mod.1
 
 基于上游 `0.2.0`（commit `8237621`）的二改。目标：在 **DSH 0.2.0-rc.2** 上可安装、可加载、可生效。

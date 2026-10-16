@@ -63,9 +63,9 @@ persona 正文每一节对应一条经实战验证的破甲机制，详见 [Pers
 ### 方式一：安装脚本（Windows）
 
 ```powershell
-git clone https://github.com/ZFXing-lite/zfx-emperor.git
+git clone https://github.com/Sakura42141/zfx-emperor.git
 cd zfx-emperor
-pwsh -File install.ps1              # 默认装 web profile
+pwsh -File install.ps1              # profile 自动探测；也可 -ProfileName 指定
 pwsh -File install.ps1 -DryRun      # 先预演，不写盘
 ```
 
@@ -76,6 +76,12 @@ pwsh -File install.ps1 -DryRun      # 先预演，不写盘
 3. 执行 `pnpm install`
 
 其他 profile：`pwsh -File install.ps1 -ProfileName default`
+
+> **注意安装位置**：请把仓库克隆到**任意普通目录**再运行脚本。
+> 若把仓库直接克隆进 `~/.dsh/plugins/zfx-emperor` 并在其中运行，脚本会检测到
+> 「源目录 == 目标目录」并跳过复制（0.2.0-mod.2 起），不会误删自身。
+> 更早的版本在同样情形下会先删后拷、把插件目录清空，导致宿主报
+> `ENOENT ... plugins/zfx-emperor/package.json`。
 
 ### 方式二：手动安装（跨平台）
 
