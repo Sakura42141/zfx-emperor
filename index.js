@@ -14,8 +14,15 @@ import { createScorer } from "./lib/scorer.js";
 import { installProfileTool, createStatusReport } from "./lib/profile-tool.js";
 
 // persona 正文。转义非内置的 {{…}}，防止 DSH 模板插值引擎抛 malformed variable。
-const PROMPT_TEXT = readFileSync(new URL("./prompts/square.md", import.meta.url), "utf8")
-  .replace(/\{\{(?!(?:cwd|model|provider)\}\})/g, "{ {");
+// 读取失败必须降级为空串：该语句在模块加载期执行，一旦抛异常，
+// 整个插件在 import 阶段就会失败，连 apply() 都进不去。
+let PROMPT_TEXT = "";
+try {
+  PROMPT_TEXT = readFileSync(new URL("./prompts/square.md", import.meta.url), "utf8")
+    .replace(/\{\{(?!(?:cwd|model|provider)\}\})/g, "{ {");
+} catch {
+  PROMPT_TEXT = "";
+}
 
 export const name = "zfx-emperor";
 // inject 必须列出本插件真正取用的服务名，且名字要与宿主提供的服务一致。
@@ -209,66 +216,93 @@ function installScorerListener(ctx, scorer) {
 
 // ---- 入口 ----
 
+/** 安全执行一段可选逻辑：任何异常都吞掉，返回 fallback。
+ *  设计原则：本插件的核心只有「persona 注入」和「工具注册」两件事，
+ *  其余所有增强（引擎补丁、身份剥离、监听器、评分器）都不得让插件激活失败。 */
+function safe(label, fn, fallback = null) {
+  try {
+    return fn();
+  } catch {
+    return fallback;
+  }
+}
+
 export function apply(ctx, config = {}) {
   const cfg = resolveConfig(config);
 
-  // 1) persona 注入
-  ctx.effect(() =>
-    ctx.systemPrompt.section({
-      name: "zfx-emperor:operating-frame",
-      order: cfg.injectOrder,
-      text: PROMPT_TEXT,
-    }),
+  // 1) persona 注入（核心功能，必须成功；仍加保护以隔离宿主 API 差异）
+  safe("systemPrompt.section", () =>
+    ctx.effect(() =>
+      ctx.systemPrompt.section({
+        name: "zfx-emperor:operating-frame",
+        order: cfg.injectOrder,
+        text: PROMPT_TEXT,
+      }),
+    ),
   );
 
-  // 2) 引擎层
-  const engine = detectEngineState();
-  if (engine.approvalBypass === false && cfg.patchEngine !== false) {
-    ensureApprovalBypass();
+  // 2) 引擎层（可选增强，默认关闭）
+  let engine = null;
+  safe("engine", () => {
+    engine = detectEngineState();
+    if (engine && engine.approvalBypass === false && cfg.patchEngine === true) {
+      const r = ensureApprovalBypass();
+      if (r && r.skipped !== true) engine = { ...engine, patched: true, bak: r.bak };
+    }
+  });
+  if (!engine) {
+    engine = { file: null, approvalBypass: null, note: "引擎检测跳过（默认不修改宿主文件）" };
   }
 
+  // 2b) 身份剥离（默认关闭）
   let identityResult = null;
   if (cfg.stripIdentity === true) {
-    identityResult = stripIdentity();
+    identityResult = safe("stripIdentity", () => stripIdentity(), { applied: [], scanned: [] });
   }
-  const identityStripped = detectIdentityStrip();
+  const identityStripped = safe("detectIdentityStrip", () => detectIdentityStrip(), []);
 
   // 3) 评分器
-  const scorer = cfg.scorer ? createScorer() : null;
+  const scorer = safe("createScorer", () => (cfg.scorer ? createScorer() : null), null);
 
   // 4) 事件监听：拒绝恢复 + 唤醒确认 + 自动继续 + 评分
-  const recover = installRefusalRecover(ctx, cfg);
-  const wake = installWakeConfirm(ctx, cfg);
-  const autoContinue = cfg.autoContinue ? installAutoContinue(ctx) : null;
-  const scorerListener = scorer ? installScorerListener(ctx, scorer) : null;
+  const recover = safe("refusalRecover", () => installRefusalRecover(ctx, cfg), null);
+  const wake = safe("wakeConfirm", () => installWakeConfirm(ctx, cfg), null);
+  const autoContinue = safe("autoContinue", () => (cfg.autoContinue ? installAutoContinue(ctx) : null), null);
+  const scorerListener = safe("scorerListener", () => (scorer ? installScorerListener(ctx, scorer) : null), null);
 
   const disposers = [recover, wake, autoContinue, scorerListener]
     .filter(Boolean)
     .map((it) => () => { try { it.dispose(); } catch { /* */ } });
-  if (disposers.length && typeof ctx.effect === "function") {
-    ctx.effect(() => disposers.forEach((dispose) => dispose()));
-  }
+  safe("disposers", () => {
+    if (disposers.length && typeof ctx.effect === "function") {
+      ctx.effect(() => disposers.forEach((dispose) => dispose()));
+    }
+  });
 
-  // 5) Profile 自查工具
-  const getReport = () =>
-    createStatusReport({
-      cfg,
-      engine,
-      recoverInstalled: Boolean(recover),
-      wakeInstalled: Boolean(wake),
-      autoContinueInstalled: Boolean(autoContinue),
-      scorer,
-      identityStripped,
-    });
-  const profileTool = installProfileTool(ctx, getReport);
+  // 5) Profile 自查工具（核心功能之一）
+  const profileTool = safe("profileTool", () => {
+    const getReport = () =>
+      createStatusReport({
+        cfg,
+        engine,
+        recoverInstalled: Boolean(recover),
+        wakeInstalled: Boolean(wake),
+        autoContinueInstalled: Boolean(autoContinue),
+        scorer,
+        identityStripped,
+      });
+    return installProfileTool(ctx, getReport);
+  }, null);
 
-  if (profileTool && typeof ctx.effect === "function") {
-    ctx.effect(() => { try { profileTool.dispose(); } catch { /* */ } });
-  }
+  safe("profileToolDispose", () => {
+    if (profileTool && typeof ctx.effect === "function") {
+      ctx.effect(() => { try { profileTool.dispose(); } catch { /* */ } });
+    }
+  });
 
   return {
     plugin: name,
-    version: "0.2.0-mod.3",
+    version: "0.2.0-mod.4",
     injectOrder: cfg.injectOrder,
     engine,
     identityStripped,

@@ -5,6 +5,53 @@
 
 ---
 
+## 0.2.0-mod.4
+
+### 修复
+
+- **`index.js`：引擎层写入只读 app.asar 导致插件激活失败**（致命，「一直出错」的第三个原因）
+
+  官方桌面版把整个 DSH 打进 `resources/app.asar` —— 它是单个归档文件，
+  里面的路径可读但**不可写**。`ensureApprovalBypass()` 在 `apply()` 里
+  同步调用且未捕获异常，于是打补丁失败直接把插件带崩：
+
+  ```
+  启用失败: dsh: warning: 1 entry did not activate
+  zfx-emperor: Error: ENOENT: no such file or directory,
+  copyFile '...\Temp\xxxx.tmp.js' ->
+  '...\resources\app.asar\dsh\node_modules\@deepseek-ai\dsh-user-approval\lib\index.js.zfx.bak'
+  at ensureApprovalBypass (lib/patcher.js:75)
+  ```
+
+- **改为「主功能优先、增强全部可选」的稳健结构**
+
+  - `apply()` 内每一步都用 `safe()` 包裹：任何一步抛异常都只跳过该步，
+    不再让整个插件激活失败
+  - `patchEngine` 默认值 `true` → **`false`**（需要时显式传 `true`）
+  - `lib/patcher.js`：新增 `isInsideAsar()`，命中只读归档时**提前跳过**，
+    连写入尝试都不发起；`detectEngineState()` / `ensureApprovalBypass()`
+    全程不抛异常
+  - `lib/identity-strip.js`：三个导出全部加异常保护，单个文件失败不影响其他
+  - `index.js`：`PROMPT_TEXT` 在模块加载期读取 persona 文件，改为失败降级为空串
+    （原先若读取失败，插件在 import 阶段就挂了，连 `apply()` 都进不去）
+  - 测试 `defaults when empty` / `override merges` 同步更新
+
+  > 设计原则：本插件真正必需的只有「persona 注入」与「工具注册」两件事。
+  > 引擎补丁、身份剥离、监听器、评分器都属于可选增强，**任何一个坏掉都不应
+  > 影响插件装上**。
+
+### 验证
+
+- **抗异常激活测试**：构造 9 种异常宿主（`systemPrompt` 缺失 / `section` 抛异常 /
+  `effect` 抛异常 / `tools.register` 抛异常 / `ctx.on` 抛异常 / 服务全缺 /
+  `ctx` 为空对象 / 只读环境下强制 `patchEngine:true` / `stripIdentity:true`）
+  —— **9/9 全部 `apply()` 不抛异常**
+- **只读 app.asar 场景**：真实构造 `resources/app.asar/dsh/node_modules/...` 结构，
+  确认 `writable` 判定为 `false`、补丁被跳过、目标文件未被改动、未产生 `.zfx.bak`
+- 插件自带测试 12/12 通过
+
+---
+
 ## 0.2.0-mod.3
 
 ### 修复

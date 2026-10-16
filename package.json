@@ -1,6 +1,6 @@
 {
   "name": "zfx-emperor",
-  "version": "0.2.0-mod.3",
+  "version": "0.2.0-mod.4",
   "description": "ZFX Emperor — DSH 原生破甲插件（二改版 by dy萝里没有你，原作者：正方形）",
   "license": "MIT",
   "author": "dy萝里没有你 — 二改版维护者",
@@ -49,8 +49,8 @@
   "dsh": {
     "id": "zfx-emperor",
     "name": "ZFX Emperor",
-    "version": "0.2.0-mod.3",
-    "permissions": "系统提示词注入、工具注册、引擎补丁",
+    "version": "0.2.0-mod.4",
+    "permissions": "系统提示词注入、工具注册；引擎补丁默认关闭（可选）",
     "bundle": {
       "patch": "./cordis.patch.yml"
     },

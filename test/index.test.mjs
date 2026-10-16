@@ -13,16 +13,19 @@ describe("config", () => {
     const cfg = resolveConfig({});
     assert.equal(cfg.injectOrder, -99999);
     assert.equal(cfg.maxRecoverPerTurn, 2);
-    assert.equal(cfg.patchEngine, true);
+    // 引擎补丁默认关闭：官方桌面版的 DSH 位于只读 app.asar 内，
+    // 无法写入；该功能属可选增强，需显式传 patchEngine: true 开启。
+    assert.equal(cfg.patchEngine, false);
+    assert.equal(cfg.stripIdentity, false);
     assert.ok(cfg.wakeSet instanceof Set);
     assert.ok(cfg.wakeSet.has("zfx"));
     assert.ok(cfg.wakeSet.has("正方形"));
   });
 
   test("override merges", () => {
-    const cfg = resolveConfig({ maxRecoverPerTurn: 5, patchEngine: false });
+    const cfg = resolveConfig({ maxRecoverPerTurn: 5, patchEngine: true });
     assert.equal(cfg.maxRecoverPerTurn, 5);
-    assert.equal(cfg.patchEngine, false);
+    assert.equal(cfg.patchEngine, true);
     // 未覆盖的保持默认
     assert.equal(cfg.autoContinue, true);
   });
