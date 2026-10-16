@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="square-armor logo">
+  <!-- 底座正方形：方正，无圆角 -->
+  <rect x="20" y="20" width="160" height="160" fill="#101010"/>
+  <!-- 内嵌菱形：旋转 45° 的正方形，棱角对外 -->
+  <rect x="60" y="60" width="80" height="80" transform="rotate(45 100 100)" fill="none" stroke="#f59e0b" stroke-width="12"/>
+  <!-- 中心实心小方 -->
+  <rect x="84" y="84" width="32" height="32" fill="#f59e0b"/>
+</svg>

@@ -1,0 +1,62 @@
+{
+  "name": "zfx-emperor",
+  "version": "0.2.0-mod.1",
+  "description": "ZFX Emperor — DSH 原生破甲插件（二改版，原作者：正方形）",
+  "license": "MIT",
+  "author": "正方形 (ZFXing-lite) — 原作者",
+  "contributors": [
+    "二改维护者 — 适配 DSH 0.2.0-rc.2"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZFXing-lite/zfx-emperor.git"
+  },
+  "homepage": "https://github.com/ZFXing-lite/zfx-emperor",
+  "bugs": {
+    "url": "https://github.com/ZFXing-lite/zfx-emperor/issues"
+  },
+  "upstream": {
+    "repo": "https://github.com/ZFXing-lite/zfx-emperor",
+    "commit": "8237621a5c454ae4893b34513ede3745bb019431",
+    "version": "0.2.0",
+    "note": "本包为二改版；上游原作者为 正方形 (ZFXing-lite)"
+  },
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "lib",
+    "prompts",
+    "docs",
+    "test",
+    "cordis.patch.yml",
+    "LICENSE",
+    "README.md",
+    "MOD-NOTES.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "check": "node --check index.js && node --check client.js && node --check lib/patcher.js && node --check lib/config.js && node --check lib/scorer.js && node --check lib/identity-strip.js && node --check lib/continue-retry.js && node --check lib/profile-tool.js",
+    "test": "node --test test/index.test.mjs"
+  },
+  "dsh": {
+    "id": "zfx-emperor",
+    "name": "ZFX Emperor",
+    "version": "0.2.0-mod.1",
+    "permissions": "系统提示词注入、工具注册、引擎补丁",
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "entry": "./client.js",
+      "immediately": true
+    }
+  }
+}
