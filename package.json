@@ -1,11 +1,12 @@
 {
   "name": "zfx-emperor",
   "version": "0.2.0-mod.1",
-  "description": "ZFX Emperor — DSH 原生破甲插件（二改版，原作者：正方形）",
+  "description": "ZFX Emperor — DSH 原生破甲插件（二改版 by dy萝里没有你，原作者：正方形）",
   "license": "MIT",
-  "author": "正方形 (ZFXing-lite) — 原作者",
+  "author": "dy萝里没有你 — 二改版维护者",
   "contributors": [
-    "二改维护者 — 适配 DSH 0.2.0-rc.2"
+    "dy萝里没有你 — 二改与维护",
+    "正方形 (ZFXing-lite) — 原作者"
   ],
   "repository": {
     "type": "git",

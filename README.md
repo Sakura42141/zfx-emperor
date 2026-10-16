@@ -7,7 +7,8 @@
 **DeepSeek Harness 原生破甲插件 —— 把操作框架注入系统提示词最高优先级**
 
 > ⚠️ **二改版（MOD）** —— 本仓库是 [ZFXing-lite/zfx-emperor](https://github.com/ZFXing-lite/zfx-emperor) 的二改（fork）。
-> **原作者：正方形**。二改只修 DSH 适配问题，不改设计；`prompts/square.md` 与引擎补丁逻辑保持原样。
+> **原作者：正方形** ｜ **二改维护：[dy萝里没有你](https://github.com/Sakura42141)**
+> 二改只修 DSH 适配问题，不改设计；`prompts/square.md` 与引擎补丁逻辑保持原样。
 > 改动明细见 [MOD-NOTES.md](MOD-NOTES.md) 与 [CHANGELOG.md](CHANGELOG.md)。
 
 [English](README.en.md) · 简体中文
