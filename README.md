@@ -60,7 +60,33 @@ persona 正文每一节对应一条经实战验证的破甲机制，详见 [Pers
 
 ## 安装
 
-### 方式一：安装脚本（Windows）
+### 方式一：标准安装（推荐，跨平台）
+
+让 DSH 直接把它当普通依赖装上，不需要任何脚本、不依赖 `~/.dsh/plugins` 目录：
+
+在 **设置 → 插件 → 安装** 里填入：
+
+```
+github:Sakura42141/zfx-emperor
+```
+
+或手动编辑 `~/.dsh/profiles/<profile>/package.json`：
+
+```jsonc
+{
+  "dependencies": {
+    "zfx-emperor": "github:Sakura42141/zfx-emperor"
+  },
+  "dsh": { "profile": { "bundles": ["zfx-emperor"] } }
+}
+```
+
+然后 `cd ~/.dsh/profiles/<profile> && pnpm install`。
+
+> 这种方式由包管理器维护 `node_modules` 里的实际副本，**不涉及 `~/.dsh/plugins/`**，
+> 也就不会出现下文的 ENOENT。已实测可用。
+
+### 方式二：安装脚本（Windows）
 
 ```powershell
 git clone https://github.com/Sakura42141/zfx-emperor.git
@@ -83,7 +109,7 @@ pwsh -File install.ps1 -DryRun      # 先预演，不写盘
 > 更早的版本在同样情形下会先删后拷、把插件目录清空，导致宿主报
 > `ENOENT ... plugins/zfx-emperor/package.json`。
 
-### 方式二：手动安装（跨平台）
+### 方式三：手动安装（跨平台）
 
 ```bash
 # 1. 放到插件目录
@@ -98,6 +124,37 @@ cp -r zfx-emperor ~/.dsh/plugins/zfx-emperor
 # 3. 安装依赖
 cd ~/.dsh/profiles/<profile> && pnpm install
 ```
+
+### 故障排查：报 `package.json: ENOENT`
+
+界面上出现这样的红字：
+
+```
+包元信息错误：Plugin metadata for zfx-emperor: Error:
+C:\Users\XXX\.dsh\plugins\zfx-emperor\package.json:
+Error: ENOENT: no such file or directory
+```
+
+含义是：profile 里声明了 `link:...\.dsh\plugins\zfx-emperor`，
+但**该目录下没有 `package.json`**（目录被删空、或只残留部分文件）。
+
+按下面任一种方式修复：
+
+```powershell
+# 修法 A：用修复版脚本重建（脚本现在具备自愈能力，目录为空也能补回）
+git clone https://github.com/Sakura42141/zfx-emperor.git
+cd zfx-emperor
+pwsh -File install.ps1
+
+# 修法 B：改用标准安装，彻底绕开 plugins 目录
+#   编辑 profile 的 package.json，把
+#     "zfx-emperor": "link:...\.dsh\plugins\zfx-emperor"
+#   换成
+#     "zfx-emperor": "github:Sakura42141/zfx-emperor"
+#   然后 cd ~/.dsh/profiles/<profile> && pnpm install
+```
+
+改完**完全退出宿主再重新打开**。
 
 ### 生效
 
