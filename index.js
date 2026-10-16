@@ -268,7 +268,7 @@ export function apply(ctx, config = {}) {
 
   return {
     plugin: name,
-    version: "0.2.0",
+    version: "0.2.0-mod.3",
     injectOrder: cfg.injectOrder,
     engine,
     identityStripped,

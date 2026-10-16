@@ -5,6 +5,55 @@
 
 ---
 
+## 0.2.0-mod.3
+
+### 修复
+
+- **`lib/profile-tool.js`：工具注册缺少 `output` 声明，导致整个插件激活失败**（致命）
+
+  DSH 0.2.0-rc.2 的 `@deepseek-ai/dsh-tools` 在 `register()` 里强制校验：
+
+  ```js
+  // dsh-tools/lib/index.js:2881
+  if (output === void 0 || typeof output !== "object" ||
+      typeof output.render !== "function" ||
+      output.presentationMeta !== void 0 && typeof output.presentationMeta !== "function")
+    throw new TypeError(`tool "${name}" must declare output { schema, render, presentationMeta? }`);
+  ```
+
+  原定义只有 `name` / `description` / `parameters` / `execute`，没有 `output`，
+  于是注册直接抛 `TypeError`。该异常发生在 `apply()` 阶段，会让**整个插件**
+  激活失败：
+
+  ```
+  组件启用失败: dsh: warning: 1 entry did not activate
+  zfx-emperor (zfx-emperor): TypeError: tool "emperor_profile" must declare
+  output { schema, render, presentationMeta? } at Proxy.register
+  ```
+
+  现补上 `output`：
+
+  ```js
+  output: {
+    schema: { type: "string" },
+    render: (_args, value) => [
+      { type: "text", text: typeof value === "string" ? value : JSON.stringify(value, null, 2) },
+    ],
+  },
+  ```
+
+  同时 `execute()` 改为直接返回 JSON 字符串（与 `output.schema` 的 `type: "string"` 一致），
+  不再返回旧的 `{ content: [...] }` 包裹结构。
+
+  > 说明：mod.1 修的是 `cordis.patch.yml` 格式与 `ctx.tool` → `ctx.tools`，
+  > 当时漏掉了 `output` 这一项。所以此前版本在 DSH 0.2.0-rc.2 上**仍然装不上**——
+  > 这正是社区反馈「装了没反应 / 组件启用失败」的直接原因。
+
+- 版本号统一为 `0.2.0-mod.3`（`package.json` 的 `version` 与 `dsh.version`、
+  `index.js` 与 `lib/profile-tool.js` 里的运行期版本串原本停在 `0.2.0`）。
+
+---
+
 ## 0.2.0-mod.2
 
 ### 修复
